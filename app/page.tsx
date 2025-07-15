@@ -79,7 +79,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen social-container">
-      <Header />
 
       <div className="max-w-2xl mx-auto">
         <NavigationTabs onSettingsClick={() => setSettingsOpen(true)} />
