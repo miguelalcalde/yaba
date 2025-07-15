@@ -49,6 +49,12 @@ export function FeedCard({ item, onProgressUpdate, onArchive, onDelete, currentT
     onDelete?.(item._id)
   }
 
+  // Open bookmark in Raindrop.io app
+  const handleOpenInRaindrop = () => {
+    const raindropUrl = `https://app.raindrop.io/my/0/item/${item._id}`
+    window.open(raindropUrl, "_blank", "noopener,noreferrer")
+  }
+
   return (
     <Card className=" border p-4 transition-colors cursor-pointer relative">
       <a href={item.link} target="_blank" rel="noopener noreferrer" className="block">
@@ -71,7 +77,6 @@ export function FeedCard({ item, onProgressUpdate, onArchive, onDelete, currentT
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <h3 className="font-semibold line-clamp-2 text-sm">{item.title || "Untitled"}</h3>
-              <ExternalLink className="w-4 h-4  flex-shrink-0" />
             </div>
 
             {item.excerpt && <p className=" text-sm mt-1 line-clamp-2">{item.excerpt}</p>}
@@ -112,6 +117,19 @@ export function FeedCard({ item, onProgressUpdate, onArchive, onDelete, currentT
       </a>
 
       {/* Action buttons - positioned outside the link to prevent navigation conflicts */}
+      <div className="absolute top-2 right-2">
+        {/* Raindrop.io link button - opens bookmark in Raindrop.io app */}
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={handleOpenInRaindrop}
+          className="h-8 w-8 p-0 bg-black/80 hover:bg-black/90 text-white border-0"
+          title="Open in Raindrop.io"
+        >
+          <ExternalLink className="w-3 h-3" />
+        </Button>
+      </div>
+
       <div className="absolute bottom-2 right-2 flex gap-1">
         {/* Progress indicator for videos */}
         {item.type === "video" && <ProgressIndicator item={item} onProgressUpdate={onProgressUpdate} />}
