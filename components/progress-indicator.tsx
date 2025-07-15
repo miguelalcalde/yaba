@@ -27,8 +27,8 @@ export function ProgressIndicator({ item, onProgressUpdate }: ProgressIndicatorP
   const [timeModalOpen, setTimeModalOpen] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
 
-  // Only show for video type bookmarks
-  if (item.type !== "video") return null
+  // Show for both video and audio type bookmarks
+  if (item.type !== "video" && item.type !== "audio") return null
 
   const progressData = parseProgressFromNote(item.note)
   const videoProgress = progressData?.video
