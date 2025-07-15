@@ -13,7 +13,7 @@ export function NavigationTabs({ onSettingsClick }: NavigationTabsProps) {
   const { activeTab, setActiveTab, readItems, watchItems } = useAppStore()
 
   return (
-    <div className="sticky top-0  border-b">
+    <div className="sticky top-0 border-b bg-background/80 backdrop-blur-md z-40">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center space-x-1 text-muted-foreground">
           <Button
@@ -43,12 +43,7 @@ export function NavigationTabs({ onSettingsClick }: NavigationTabsProps) {
           </Button>
         </div>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onSettingsClick}
-          className=""
-        >
+        <Button variant="ghost" size="sm" onClick={onSettingsClick} className="">
           <Settings className="w-4 h-4" />
         </Button>
       </div>
