@@ -11,9 +11,12 @@ interface FeedListProps {
   isLoading: boolean
   error: string | null
   feedType: "read" | "watch"
+  onArchive?: (itemId: number) => void
+  onDelete?: (itemId: number) => void
+  currentTag: string
 }
 
-export function FeedList({ items, isLoading, error, feedType }: FeedListProps) {
+export function FeedList({ items, isLoading, error, feedType, onArchive, onDelete, currentTag }: FeedListProps) {
   // Local state to handle progress updates without full refetch
   const [localItems, setLocalItems] = useState<RaindropItem[]>([])
 
@@ -65,7 +68,14 @@ export function FeedList({ items, isLoading, error, feedType }: FeedListProps) {
   return (
     <div className="space-y-3 px-0">
       {displayItems.map((item) => (
-        <FeedCard key={item._id} item={item} onProgressUpdate={handleProgressUpdate} />
+        <FeedCard
+          key={item._id}
+          item={item}
+          onProgressUpdate={handleProgressUpdate}
+          onArchive={onArchive}
+          onDelete={onDelete}
+          currentTag={currentTag}
+        />
       ))}
     </div>
   )

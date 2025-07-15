@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import { useAppStore } from "@/lib/store"
 import { RaindropAPI } from "@/lib/raindrop-api"
-import { Header } from "@/components/header"
 import { NavigationTabs } from "@/components/navigation-tabs"
 import { FeedList } from "@/components/feed-list"
 import { SettingsDialog } from "@/components/settings-dialog"
@@ -63,6 +62,49 @@ export default function HomePage() {
     fetchFeedData(true)
   }
 
+  // Handle archive action
+  const handleArchive = async (itemId: number) => {
+    if (!raindropToken) return
+
+    try {
+      const api = new RaindropAPI(raindropToken)
+      const currentTag = activeTab === "read" ? readTag : watchTag
+
+      await api.archiveBookmark(itemId, currentTag)
+
+      // Remove item from current list
+      if (activeTab === "read") {
+        setReadItems(readItems.filter((item) => item._id !== itemId))
+      } else {
+        setWatchItems(watchItems.filter((item) => item._id !== itemId))
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to archive bookmark"
+      setError(errorMessage)
+    }
+  }
+
+  // Handle delete action
+  const handleDelete = async (itemId: number) => {
+    if (!raindropToken) return
+
+    try {
+      const api = new RaindropAPI(raindropToken)
+
+      await api.deleteBookmark(itemId)
+
+      // Remove item from current list
+      if (activeTab === "read") {
+        setReadItems(readItems.filter((item) => item._id !== itemId))
+      } else {
+        setWatchItems(watchItems.filter((item) => item._id !== itemId))
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to delete bookmark"
+      setError(errorMessage)
+    }
+  }
+
   // Initial data fetch
   useEffect(() => {
     fetchFeedData()
@@ -76,10 +118,10 @@ export default function HomePage() {
   }, [raindropToken])
 
   const currentItems = activeTab === "read" ? readItems : watchItems
+  const currentTag = activeTab === "read" ? readTag : watchTag
 
   return (
     <div className="min-h-screen social-container">
-
       <div className="max-w-2xl mx-auto">
         <NavigationTabs onSettingsClick={() => setSettingsOpen(true)} />
 
@@ -100,7 +142,15 @@ export default function HomePage() {
         </div>
 
         <div className="pb-6">
-          <FeedList items={currentItems} isLoading={isLoading} error={error} feedType={activeTab} />
+          <FeedList
+            items={currentItems}
+            isLoading={isLoading}
+            error={error}
+            feedType={activeTab}
+            onArchive={handleArchive}
+            onDelete={handleDelete}
+            currentTag={currentTag}
+          />
         </div>
       </div>
 

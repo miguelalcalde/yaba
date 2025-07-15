@@ -65,6 +65,44 @@ export class RaindropAPI {
     }
   }
 
+  // Archive bookmark by updating tags
+  async archiveBookmark(bookmarkId: number, currentTag: string): Promise<void> {
+    try {
+      // Remove # from current tag if present
+      const cleanCurrentTag = currentTag.startsWith("#") ? currentTag.slice(1) : currentTag
+
+      // Create archive tag
+      const archiveTag = `${cleanCurrentTag}-archive`
+
+      // Get current bookmark to preserve other tags
+      const bookmarkData = await this.makeRequest(`/raindrop/${bookmarkId}`)
+      const currentTags = bookmarkData.item.tags || []
+
+      // Remove current tag and add archive tag
+      const updatedTags = currentTags.filter((tag: string) => tag !== cleanCurrentTag).concat(archiveTag)
+
+      await this.makeRequest(`/raindrop/${bookmarkId}`, {
+        method: "PUT",
+        body: JSON.stringify({ tags: updatedTags }),
+      })
+    } catch (error) {
+      console.error("Error archiving bookmark:", error)
+      throw error
+    }
+  }
+
+  // Delete bookmark
+  async deleteBookmark(bookmarkId: number): Promise<void> {
+    try {
+      await this.makeRequest(`/raindrop/${bookmarkId}`, {
+        method: "DELETE",
+      })
+    } catch (error) {
+      console.error("Error deleting bookmark:", error)
+      throw error
+    }
+  }
+
   async testConnection(): Promise<boolean> {
     try {
       await this.makeRequest("/user")
