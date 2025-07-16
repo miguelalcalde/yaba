@@ -39,11 +39,7 @@ export default function HomePage() {
       if (response.ok) {
         const data = await response.json()
         setAuthenticated(data.authenticated)
-
-        if (data.authenticated) {
-          // Auto-fetch data if authenticated
-          fetchFeedData()
-        }
+        // Removed the direct fetchFeedData() call to avoid race condition
       } else {
         setAuthenticated(false)
       }
@@ -154,7 +150,7 @@ export default function HomePage() {
     }
   }
 
-  // Initial data fetch when authenticated
+  // Initial data fetch when authenticated - this effect will handle the data fetching properly
   useEffect(() => {
     if (isAuthenticated) {
       fetchFeedData()

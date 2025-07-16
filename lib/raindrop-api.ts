@@ -119,17 +119,6 @@ export class RaindropAPI {
     }
   }
 
-  // New method to get a single bookmark by ID
-  async getBookmarkById(bookmarkId: number): Promise<any> {
-    try {
-      const data = await this.makeRequest(`/raindrop/${bookmarkId}`)
-      return data.item
-    } catch (error) {
-      console.error("Error fetching bookmark:", error)
-      throw error
-    }
-  }
-
   // New method to update bookmark notes for progress tracking
   async updateBookmarkNote(bookmarkId: number, note: string): Promise<void> {
     try {
