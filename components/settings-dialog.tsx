@@ -32,46 +32,96 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   // Check authentication status when dialog opens
   useEffect(() => {
     if (open) {
+      console.log("Settings dialog opened, checking auth status...")
       checkAuthStatus()
     }
   }, [open])
 
   const checkAuthStatus = async () => {
+    console.log("Checking authentication status...")
     try {
       const response = await fetch("/api/auth/me")
+      console.log("Auth check response status:", response.status)
+
       if (response.ok) {
         const data = await response.json()
+        console.log("Auth check response data:", data)
+
         if (data.authenticated) {
+          console.log("User is authenticated:", data.user)
           setAuthUser(data.user)
           setAuthenticated(true)
         } else {
+          console.log("User is not authenticated")
           setAuthUser(null)
           setAuthenticated(false)
         }
       } else {
+        console.log("Auth check failed with status:", response.status)
         setAuthUser(null)
         setAuthenticated(false)
       }
     } catch (error) {
-      console.error("Auth check failed:", error)
+      console.error("Auth check failed with error:", error)
       setAuthUser(null)
       setAuthenticated(false)
     }
   }
 
-  const handleOAuthLogin = () => {
+  const handleOAuthLogin = async () => {
+    console.log("=== OAuth Login Button Clicked ===")
     setIsLoading(true)
     setAuthError(null)
-    // Redirect to OAuth flow
-    window.location.href = "/api/auth/raindrop"
+
+    try {
+      console.log("Current URL:", window.location.href)
+      console.log("About to redirect to: /api/auth/raindrop")
+
+      // First, let's test if the endpoint is reachable
+      console.log("Testing OAuth endpoint accessibility...")
+      const testResponse = await fetch("/api/auth/raindrop", {
+        method: "GET",
+        redirect: "manual", // Don't follow redirects automatically
+      })
+
+      console.log("Test response status:", testResponse.status)
+      console.log("Test response headers:", Object.fromEntries(testResponse.headers.entries()))
+
+      if (testResponse.status === 0) {
+        console.error("Network error - endpoint not reachable")
+        setAuthError("Network error: Cannot reach authentication endpoint")
+        setIsLoading(false)
+        return
+      }
+
+      if (testResponse.status >= 400) {
+        console.error("OAuth endpoint returned error:", testResponse.status)
+        const errorText = await testResponse.text()
+        console.error("Error response body:", errorText)
+        setAuthError(`Authentication endpoint error: ${testResponse.status}`)
+        setIsLoading(false)
+        return
+      }
+
+      // If we get here, the endpoint is working, so redirect
+      console.log("OAuth endpoint is accessible, redirecting...")
+      window.location.href = "/api/auth/raindrop"
+    } catch (error) {
+      console.error("Error during OAuth login:", error)
+      setAuthError(`Failed to initiate OAuth: ${error instanceof Error ? error.message : "Unknown error"}`)
+      setIsLoading(false)
+    }
   }
 
   const handleLogout = async () => {
+    console.log("Logout button clicked")
     try {
       setIsLoading(true)
       const response = await fetch("/api/auth/logout", { method: "POST" })
+      console.log("Logout response status:", response.status)
 
       if (response.ok) {
+        console.log("Logout successful")
         setAuthUser(null)
         setAuthenticated(false)
       } else {
@@ -86,6 +136,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   }
 
   const handleSave = () => {
+    console.log("Saving settings:", { readTag: localReadTag, watchTag: localWatchTag })
     setReadTag(localReadTag)
     setWatchTag(localWatchTag)
     onOpenChange(false)
@@ -97,6 +148,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     const authError = urlParams.get("auth_error")
 
     if (authError) {
+      console.log("Auth error found in URL:", authError)
       let errorMessage = "Authentication failed"
       switch (authError) {
         case "access_denied":
