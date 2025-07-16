@@ -55,6 +55,22 @@ export function generateResumeUrl(originalUrl: string, timestamp: number, platfo
         url.hash = `t=${Math.floor(timestamp / 60)}m${timestamp % 60}s`
         break
 
+      case "spotify":
+        url.searchParams.set("t", timestamp.toString())
+        break
+
+      case "twitch":
+        // Twitch uses ?t=XhYmZs format for VODs
+        const hours = Math.floor(timestamp / 3600)
+        const minutes = Math.floor((timestamp % 3600) / 60)
+        const seconds = timestamp % 60
+        let timeParam = ""
+        if (hours > 0) timeParam += `${hours}h`
+        if (minutes > 0) timeParam += `${minutes}m`
+        if (seconds > 0) timeParam += `${seconds}s`
+        if (timeParam) url.searchParams.set("t", timeParam)
+        break
+
       default:
         // For unknown platforms, try the generic ?t= parameter
         url.searchParams.set("t", timestamp.toString())
@@ -76,6 +92,8 @@ export function detectVideoPlatform(url: string): string {
       return "youtube"
     } else if (urlObj.hostname.includes("vimeo.com")) {
       return "vimeo"
+    } else if (urlObj.hostname.includes("spotify.com")) {
+      return "spotify"
     } else if (urlObj.hostname.includes("twitch.tv")) {
       return "twitch"
     }
