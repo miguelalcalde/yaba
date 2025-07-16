@@ -1,12 +1,17 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Play, Clock } from "lucide-react"
-import { TimeInputModal } from "./time-input-modal"
-import { useAppStore } from "@/lib/store"
-import { RaindropAPI } from "@/lib/raindrop-api"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Play, Clock } from "lucide-react";
+import { TimeInputModal } from "./time-input-modal";
+import { useAppStore } from "@/lib/store";
+import { RaindropAPI } from "@/lib/raindrop-api";
 import {
   parseProgressFromNote,
   updateProgressInNote,
@@ -14,97 +19,117 @@ import {
   detectVideoPlatform,
   formatTimestamp,
   type VideoProgress,
-} from "@/lib/progress-utils"
-import type { RaindropItem } from "@/lib/store"
+} from "@/lib/progress-utils";
+import type { RaindropItem } from "@/lib/store";
 
 interface ProgressIndicatorProps {
-  item: RaindropItem
-  onProgressUpdate?: (updatedItem: RaindropItem) => void
+  item: RaindropItem;
+  onProgressUpdate?: (updatedItem: RaindropItem) => void;
 }
 
-export function ProgressIndicator({ item, onProgressUpdate }: ProgressIndicatorProps) {
-  const { raindropToken } = useAppStore()
-  const [timeModalOpen, setTimeModalOpen] = useState(false)
-  const [isUpdating, setIsUpdating] = useState(false)
+export function ProgressIndicator({
+  item,
+  onProgressUpdate,
+}: ProgressIndicatorProps) {
+  const { raindropToken } = useAppStore();
+  const [timeModalOpen, setTimeModalOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Show for both video and audio type bookmarks
-  if (item.type !== "video" && item.type !== "audio") return null
+  if (item.type !== "video" && item.type !== "audio") return null;
 
-  const progressData = parseProgressFromNote(item.note)
-  const videoProgress = progressData?.video
-  const hasProgress = !!videoProgress
+  const progressData = parseProgressFromNote(item.note);
+  const videoProgress = progressData?.video;
+  const hasProgress = !!videoProgress;
 
   const handleContinueWatching = () => {
-    if (!videoProgress) return
+    if (!videoProgress) return;
 
-    const platform = detectVideoPlatform(item.link)
-    const resumeUrl = generateResumeUrl(item.link, videoProgress.timestamp, platform)
-    window.open(resumeUrl, "_blank", "noopener,noreferrer")
-  }
+    const platform = detectVideoPlatform(item.link);
+    const resumeUrl = generateResumeUrl(
+      item.link,
+      videoProgress.timestamp,
+      platform
+    );
+    window.open(resumeUrl, "_blank", "noopener,noreferrer");
+  };
 
   const handleSaveProgress = async (timestamp: number) => {
-    if (!raindropToken) return
+    if (!raindropToken) return;
 
-    setIsUpdating(true)
+    setIsUpdating(true);
     try {
-      const platform = detectVideoPlatform(item.link)
+      const platform = detectVideoPlatform(item.link);
       const newVideoProgress: VideoProgress = {
         type: "video",
         timestamp,
         lastUpdated: new Date().toISOString(),
         platform,
-      }
+      };
 
-      const updatedNote = updateProgressInNote(item.note, { video: newVideoProgress })
+      const updatedNote = updateProgressInNote(item.note, {
+        video: newVideoProgress,
+      });
 
-      const api = new RaindropAPI(raindropToken)
-      await api.updateBookmarkNote(item._id, updatedNote)
+      const api = new RaindropAPI(raindropToken);
+      await api.updateBookmarkNote(item._id, updatedNote);
 
       // Update local state
-      const updatedItem = { ...item, note: updatedNote }
-      onProgressUpdate?.(updatedItem)
+      const updatedItem = { ...item, note: updatedNote };
+      onProgressUpdate?.(updatedItem);
     } catch (error) {
-      console.error("Error saving progress:", error)
+      console.error("Error saving progress:", error);
     } finally {
-      setIsUpdating(false)
+      setIsUpdating(false);
     }
-  }
+  };
 
   return (
     <>
-      <div className="absolute bottom-2 right-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="secondary"
-              size="sm"
-              className="h-8 w-8 p-0 bg-black/80 hover:bg-black/90 text-white border-0"
-            >
-              {hasProgress ? <Play className="w-3 h-3 fill-current" /> : <Clock className="w-3 h-3" />}
-            </Button>
-          </DropdownMenuTrigger>
-
-          <DropdownMenuContent align="end" className="w-48">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 hover:bg-black/10 dark:hover:bg-white/10"
+          >
             {hasProgress ? (
-              <>
-                <DropdownMenuItem onClick={handleContinueWatching} className="flex items-center gap-2">
-                  <Play className="w-4 h-4" />
-                  Continue at {formatTimestamp(videoProgress.timestamp)}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTimeModalOpen(true)} className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  Update progress
-                </DropdownMenuItem>
-              </>
+              <Play className="w-3 h-3 fill-current" />
             ) : (
-              <DropdownMenuItem onClick={() => setTimeModalOpen(true)} className="flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                Save progress
-              </DropdownMenuItem>
+              <Clock className="w-3 h-3" />
             )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+          </Button>
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent align="end" className="w-48">
+          {hasProgress ? (
+            <>
+              <DropdownMenuItem
+                onClick={handleContinueWatching}
+                className="flex items-center gap-2"
+              >
+                <Play className="w-4 h-4" />
+                Continue at {formatTimestamp(videoProgress.timestamp)}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setTimeModalOpen(true)}
+                className="flex items-center gap-2"
+              >
+                <Clock className="w-4 h-4" />
+                Update progress
+              </DropdownMenuItem>
+            </>
+          ) : (
+            <DropdownMenuItem
+              onClick={() => setTimeModalOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <Clock className="w-4 h-4" />
+              Save progress
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <TimeInputModal
         open={timeModalOpen}
@@ -114,5 +139,5 @@ export function ProgressIndicator({ item, onProgressUpdate }: ProgressIndicatorP
         title={item.title}
       />
     </>
-  )
+  );
 }
