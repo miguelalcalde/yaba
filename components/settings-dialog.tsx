@@ -1,55 +1,126 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAppStore } from "@/lib/store"
-import { RaindropAPI } from "@/lib/raindrop-api"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, CheckCircle, AlertCircle, ExternalLink } from "lucide-react"
+import { Loader2, CheckCircle, AlertCircle, ExternalLink, LogOut, User } from "lucide-react"
 
 interface SettingsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
+interface AuthUser {
+  id: number
+  name: string | null
+  email: string | null
+}
+
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
-  const { readTag, watchTag, raindropToken, setReadTag, setWatchTag, setRaindropToken } = useAppStore()
+  const { readTag, watchTag, setReadTag, setWatchTag, setAuthenticated } = useAppStore()
 
   const [localReadTag, setLocalReadTag] = useState(readTag)
   const [localWatchTag, setLocalWatchTag] = useState(watchTag)
-  const [localToken, setLocalToken] = useState(raindropToken)
-  const [isTestingConnection, setIsTestingConnection] = useState(false)
-  const [connectionStatus, setConnectionStatus] = useState<"idle" | "success" | "error">("idle")
+  const [isLoading, setIsLoading] = useState(false)
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null)
+  const [authError, setAuthError] = useState<string | null>(null)
+
+  // Check authentication status when dialog opens
+  useEffect(() => {
+    if (open) {
+      checkAuthStatus()
+    }
+  }, [open])
+
+  const checkAuthStatus = async () => {
+    try {
+      const response = await fetch("/api/auth/me")
+      if (response.ok) {
+        const data = await response.json()
+        if (data.authenticated) {
+          setAuthUser(data.user)
+          setAuthenticated(true)
+        } else {
+          setAuthUser(null)
+          setAuthenticated(false)
+        }
+      } else {
+        setAuthUser(null)
+        setAuthenticated(false)
+      }
+    } catch (error) {
+      console.error("Auth check failed:", error)
+      setAuthUser(null)
+      setAuthenticated(false)
+    }
+  }
+
+  const handleOAuthLogin = () => {
+    setIsLoading(true)
+    setAuthError(null)
+    // Redirect to OAuth flow
+    window.location.href = "/api/auth/raindrop"
+  }
+
+  const handleLogout = async () => {
+    try {
+      setIsLoading(true)
+      const response = await fetch("/api/auth/logout", { method: "POST" })
+
+      if (response.ok) {
+        setAuthUser(null)
+        setAuthenticated(false)
+      } else {
+        throw new Error("Logout failed")
+      }
+    } catch (error) {
+      console.error("Logout error:", error)
+      setAuthError("Failed to logout. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleSave = () => {
     setReadTag(localReadTag)
     setWatchTag(localWatchTag)
-    setRaindropToken(localToken)
     onOpenChange(false)
   }
 
-  const testConnection = async () => {
-    if (!localToken.trim()) {
-      setConnectionStatus("error")
-      return
-    }
+  // Check for auth errors in URL params
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const authError = urlParams.get("auth_error")
 
-    setIsTestingConnection(true)
-    setConnectionStatus("idle")
+    if (authError) {
+      let errorMessage = "Authentication failed"
+      switch (authError) {
+        case "access_denied":
+          errorMessage = "Access was denied. Please try again."
+          break
+        case "invalid_state":
+          errorMessage = "Security validation failed. Please try again."
+          break
+        case "callback_failed":
+          errorMessage = "Authentication callback failed. Please try again."
+          break
+        case "missing_parameters":
+          errorMessage = "Missing required parameters. Please try again."
+          break
+      }
 
-    try {
-      const api = new RaindropAPI(localToken)
-      const isValid = await api.testConnection()
-      setConnectionStatus(isValid ? "success" : "error")
-    } catch (error) {
-      setConnectionStatus("error")
-    } finally {
-      setIsTestingConnection(false)
+      setAuthError(errorMessage)
+
+      // Clean up URL
+      const newUrl = new URL(window.location.href)
+      newUrl.searchParams.delete("auth_error")
+      window.history.replaceState({}, "", newUrl.toString())
     }
-  }
+  }, [])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -60,61 +131,67 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* API Token */}
-          <div className="space-y-2">
-            <Label htmlFor="token">Raindrop.io API Token</Label>
-            <div className="flex gap-2">
-              <Input
-                id="token"
-                type="password"
-                placeholder="Enter your API token"
-                value={localToken}
-                onChange={(e) => {
-                  setLocalToken(e.target.value)
-                  setConnectionStatus("idle")
-                }}
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={testConnection}
-                disabled={isTestingConnection || !localToken.trim()}
-              >
-                {isTestingConnection ? <Loader2 className="w-4 h-4 animate-spin" /> : "Test"}
-              </Button>
-            </div>
+          {/* Authentication Section */}
+          <div className="space-y-3">
+            <Label className="text-base font-medium">Raindrop.io Authentication</Label>
 
-            {connectionStatus === "success" && (
-              <Alert className="border-green-200 bg-green-50">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-800">Connection successful!</AlertDescription>
-              </Alert>
+            {authUser ? (
+              <div className="space-y-3">
+                <Alert className="border-green-200 bg-green-50">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <AlertDescription className="text-green-800">
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      <span>Signed in as {authUser.name || authUser.email || "Raindrop User"}</span>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+
+                <Button variant="outline" onClick={handleLogout} disabled={isLoading} className="w-full bg-transparent">
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Signing out...
+                    </>
+                  ) : (
+                    <>
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Connect your Raindrop.io account to access your bookmarks securely.
+                </p>
+
+                <Button onClick={handleOAuthLogin} disabled={isLoading} className="w-full">
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Connecting...
+                    </>
+                  ) : (
+                    <>
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Connect Raindrop.io
+                    </>
+                  )}
+                </Button>
+              </div>
             )}
 
-            {connectionStatus === "error" && (
+            {authError && (
               <Alert className="border-red-200 bg-red-50">
                 <AlertCircle className="h-4 w-4 text-red-600" />
-                <AlertDescription className="text-red-800">
-                  Connection failed. Please check your API token.
-                </AlertDescription>
+                <AlertDescription className="text-red-800">{authError}</AlertDescription>
               </Alert>
             )}
-
-            <p className="text-xs text-muted-foreground">
-              Get your API token from{" "}
-              <a
-                href="https://app.raindrop.io/settings/integrations"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:underline inline-flex items-center gap-1"
-              >
-                Raindrop.io Settings
-                <ExternalLink className="w-3 h-3" />
-              </a>
-            </p>
           </div>
 
-          {/* Feed Tags */}
+          {/* Feed Tags Section */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="readTag">Read Feed Tag</Label>

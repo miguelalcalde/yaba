@@ -11,7 +11,6 @@ export interface RaindropItem {
   tags: string[]
   created: string
   type: "link" | "article" | "image" | "video" | "document" | "audio"
-  // Added note field for progress tracking
   note: string
 }
 
@@ -20,8 +19,8 @@ interface AppState {
   readTag: string
   watchTag: string
 
-  // API configuration
-  raindropToken: string
+  // Authentication state
+  isAuthenticated: boolean
 
   // Feed data
   readItems: RaindropItem[]
@@ -35,7 +34,7 @@ interface AppState {
   // Actions
   setReadTag: (tag: string) => void
   setWatchTag: (tag: string) => void
-  setRaindropToken: (token: string) => void
+  setAuthenticated: (authenticated: boolean) => void
   setActiveTab: (tab: "read" | "watch") => void
   setReadItems: (items: RaindropItem[]) => void
   setWatchItems: (items: RaindropItem[]) => void
@@ -49,7 +48,7 @@ export const useAppStore = create<AppState>()(
       // Initial state
       readTag: "#read",
       watchTag: "#watch",
-      raindropToken: "",
+      isAuthenticated: false,
       readItems: [],
       watchItems: [],
       activeTab: "read",
@@ -59,7 +58,7 @@ export const useAppStore = create<AppState>()(
       // Actions
       setReadTag: (tag) => set({ readTag: tag }),
       setWatchTag: (tag) => set({ watchTag: tag }),
-      setRaindropToken: (token) => set({ raindropToken: token }),
+      setAuthenticated: (authenticated) => set({ isAuthenticated: authenticated }),
       setActiveTab: (tab) => set({ activeTab: tab }),
       setReadItems: (items) => set({ readItems: items }),
       setWatchItems: (items) => set({ watchItems: items }),
@@ -71,7 +70,7 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         readTag: state.readTag,
         watchTag: state.watchTag,
-        raindropToken: state.raindropToken,
+        // Note: We don't persist isAuthenticated - it's checked on app load
       }),
     },
   ),

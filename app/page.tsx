@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import { useAppStore } from "@/lib/store"
-import { RaindropAPI } from "@/lib/raindrop-api"
 import { NavigationTabs } from "@/components/navigation-tabs"
 import { FeedList } from "@/components/feed-list"
 import { SettingsDialog } from "@/components/settings-dialog"
@@ -14,7 +13,7 @@ export default function HomePage() {
     activeTab,
     readTag,
     watchTag,
-    raindropToken,
+    isAuthenticated,
     readItems,
     watchItems,
     isLoading,
@@ -23,14 +22,41 @@ export default function HomePage() {
     setWatchItems,
     setLoading,
     setError,
+    setAuthenticated,
   } = useAppStore()
 
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
 
+  // Check authentication on app load
+  useEffect(() => {
+    checkAuthStatus()
+  }, [])
+
+  const checkAuthStatus = async () => {
+    try {
+      const response = await fetch("/api/auth/me")
+      if (response.ok) {
+        const data = await response.json()
+        setAuthenticated(data.authenticated)
+
+        if (data.authenticated) {
+          // Auto-fetch data if authenticated
+          fetchFeedData()
+        }
+      } else {
+        setAuthenticated(false)
+      }
+    } catch (error) {
+      console.error("Auth check failed:", error)
+      setAuthenticated(false)
+    }
+  }
+
   const fetchFeedData = async (forceRefresh = false) => {
-    if (!raindropToken) {
-      setError("Please configure your Raindrop.io API token in settings")
+    if (!isAuthenticated) {
+      setError("Please sign in with your Raindrop.io account")
+      setSettingsOpen(true)
       return
     }
 
@@ -43,12 +69,25 @@ export default function HomePage() {
     setError(null)
 
     try {
-      const api = new RaindropAPI(raindropToken)
+      const [readResponse, watchResponse] = await Promise.all([
+        fetch(`/api/bookmarks/${encodeURIComponent(readTag)}`),
+        fetch(`/api/bookmarks/${encodeURIComponent(watchTag)}`),
+      ])
 
-      const [readData, watchData] = await Promise.all([api.getBookmarksByTag(readTag), api.getBookmarksByTag(watchTag)])
+      if (!readResponse.ok || !watchResponse.ok) {
+        if (readResponse.status === 401 || watchResponse.status === 401) {
+          setAuthenticated(false)
+          setError("Authentication expired. Please sign in again.")
+          setSettingsOpen(true)
+          return
+        }
+        throw new Error("Failed to fetch bookmarks")
+      }
 
-      setReadItems(readData)
-      setWatchItems(watchData)
+      const [readData, watchData] = await Promise.all([readResponse.json(), watchResponse.json()])
+
+      setReadItems(readData.items)
+      setWatchItems(watchData.items)
       setLastRefresh(new Date())
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to fetch bookmarks"
@@ -64,13 +103,19 @@ export default function HomePage() {
 
   // Handle archive action
   const handleArchive = async (itemId: number) => {
-    if (!raindropToken) return
+    if (!isAuthenticated) return
 
     try {
-      const api = new RaindropAPI(raindropToken)
       const currentTag = activeTab === "read" ? readTag : watchTag
+      const response = await fetch(`/api/bookmarks/${itemId}/archive`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentTag }),
+      })
 
-      await api.archiveBookmark(itemId, currentTag)
+      if (!response.ok) {
+        throw new Error("Failed to archive bookmark")
+      }
 
       // Remove item from current list
       if (activeTab === "read") {
@@ -86,12 +131,16 @@ export default function HomePage() {
 
   // Handle delete action
   const handleDelete = async (itemId: number) => {
-    if (!raindropToken) return
+    if (!isAuthenticated) return
 
     try {
-      const api = new RaindropAPI(raindropToken)
+      const response = await fetch(`/api/bookmarks/${itemId}`, {
+        method: "DELETE",
+      })
 
-      await api.deleteBookmark(itemId)
+      if (!response.ok) {
+        throw new Error("Failed to delete bookmark")
+      }
 
       // Remove item from current list
       if (activeTab === "read") {
@@ -105,17 +154,19 @@ export default function HomePage() {
     }
   }
 
-  // Initial data fetch
+  // Initial data fetch when authenticated
   useEffect(() => {
-    fetchFeedData()
-  }, [raindropToken, readTag, watchTag])
+    if (isAuthenticated) {
+      fetchFeedData()
+    }
+  }, [isAuthenticated, readTag, watchTag])
 
-  // Show settings dialog if no token is configured
+  // Show settings dialog if not authenticated
   useEffect(() => {
-    if (!raindropToken) {
+    if (!isAuthenticated) {
       setSettingsOpen(true)
     }
-  }, [raindropToken])
+  }, [isAuthenticated])
 
   const currentItems = activeTab === "read" ? readItems : watchItems
   const currentTag = activeTab === "read" ? readTag : watchTag
@@ -134,7 +185,7 @@ export default function HomePage() {
             variant="ghost"
             size="sm"
             onClick={handleRefresh}
-            disabled={isLoading}
+            disabled={isLoading || !isAuthenticated}
             className="text-social-text-muted hover:text-social-text"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
