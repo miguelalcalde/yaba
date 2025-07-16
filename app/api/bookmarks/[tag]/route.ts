@@ -3,6 +3,16 @@ import { RaindropAPI } from "@/lib/raindrop-api"
 
 export async function GET(request: NextRequest, { params }: { params: { tag: string } }) {
   try {
+    // Check if we have a test token for bypass
+    const testToken = process.env.RAINDROP_TEST_TOKEN
+
+    if (testToken) {
+      // Use test token directly
+      const api = new RaindropAPI(testToken)
+      const bookmarks = await api.getBookmarksByTag(params.tag)
+      return NextResponse.json({ items: bookmarks })
+    }
+
     const sessionId = request.cookies.get("session")?.value
 
     if (!sessionId) {

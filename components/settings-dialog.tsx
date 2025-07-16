@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, CheckCircle, AlertCircle, ExternalLink, LogOut, User } from "lucide-react"
+import { Loader2, CheckCircle, AlertCircle, ExternalLink, LogOut, User, TestTube } from "lucide-react"
 
 interface SettingsDialogProps {
   open: boolean
@@ -28,6 +28,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [authUser, setAuthUser] = useState<AuthUser | null>(null)
   const [authError, setAuthError] = useState<string | null>(null)
+  const [isTestMode, setIsTestMode] = useState(false)
 
   // Check authentication status when dialog opens
   useEffect(() => {
@@ -44,18 +45,22 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
         if (data.authenticated) {
           setAuthUser(data.user)
           setAuthenticated(true)
+          setIsTestMode(data.testMode || false) // Check if we're in test mode
         } else {
           setAuthUser(null)
           setAuthenticated(false)
+          setIsTestMode(false)
         }
       } else {
         setAuthUser(null)
         setAuthenticated(false)
+        setIsTestMode(false)
       }
     } catch (error) {
       console.error("Auth check failed:", error)
       setAuthUser(null)
       setAuthenticated(false)
+      setIsTestMode(false)
     }
   }
 
@@ -69,11 +74,21 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const handleLogout = async () => {
     try {
       setIsLoading(true)
+
+      // If in test mode, just clear local state
+      if (isTestMode) {
+        setAuthUser(null)
+        setAuthenticated(false)
+        setIsTestMode(false)
+        return
+      }
+
       const response = await fetch("/api/auth/logout", { method: "POST" })
 
       if (response.ok) {
         setAuthUser(null)
         setAuthenticated(false)
+        setIsTestMode(false)
       } else {
         throw new Error("Logout failed")
       }
@@ -141,8 +156,11 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                   <CheckCircle className="h-4 w-4 text-green-600" />
                   <AlertDescription className="text-green-800">
                     <div className="flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      <span>Signed in as {authUser.name || authUser.email || "Raindrop User"}</span>
+                      {isTestMode ? <TestTube className="w-4 h-4" /> : <User className="w-4 h-4" />}
+                      <span>
+                        {isTestMode ? "Test Mode: " : "Signed in as "}
+                        {authUser.name || authUser.email || "Raindrop User"}
+                      </span>
                     </div>
                   </AlertDescription>
                 </Alert>
@@ -151,12 +169,12 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                   {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Signing out...
+                      {isTestMode ? "Clearing..." : "Signing out..."}
                     </>
                   ) : (
                     <>
                       <LogOut className="w-4 h-4 mr-2" />
-                      Sign Out
+                      {isTestMode ? "Clear Test Mode" : "Sign Out"}
                     </>
                   )}
                 </Button>
