@@ -1,18 +1,86 @@
 import type { RaindropItem } from "./store"
+import { DatabaseService } from "./database"
 
 const RAINDROP_API_BASE = "https://api.raindrop.io/rest/v1"
 
 export class RaindropAPI {
-  private token: string
+  private accessToken: string | null = null
 
-  constructor(token: string) {
-    this.token = token
+  constructor(accessToken?: string) {
+    this.accessToken = accessToken || null
+  }
+
+  // Get access token from database using session
+  static async fromSession(sessionId: string): Promise<RaindropAPI | null> {
+    try {
+      const db = new DatabaseService()
+      const session = await db.getSession(sessionId)
+
+      if (!session) return null
+
+      const tokenData = await db.getOAuthToken(session.user_id)
+      if (!tokenData) return null
+
+      // Check if token is expired and needs refresh
+      if (tokenData.expires_at && new Date(tokenData.expires_at) <= new Date()) {
+        // Token is expired, attempt refresh
+        if (tokenData.refresh_token) {
+          const refreshed = await RaindropAPI.refreshToken(tokenData.refresh_token, session.user_id)
+          if (refreshed) {
+            return new RaindropAPI(refreshed.access_token)
+          }
+        }
+        return null
+      }
+
+      return new RaindropAPI(tokenData.access_token)
+    } catch (error) {
+      console.error("Error creating API from session:", error)
+      return null
+    }
+  }
+
+  // Refresh OAuth token
+  static async refreshToken(refreshToken: string, userId: number): Promise<{ access_token: string } | null> {
+    try {
+      const response = await fetch("https://raindrop.io/oauth/access_token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          client_id: process.env.RAINDROP_CLIENT_ID,
+          client_secret: process.env.RAINDROP_CLIENT_SECRET,
+          refresh_token: refreshToken,
+          grant_type: "refresh_token",
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Token refresh failed: ${response.status}`)
+      }
+
+      const tokenData = await response.json()
+
+      // Save new token to database
+      const db = new DatabaseService()
+      await db.saveOAuthToken(userId, tokenData)
+
+      return tokenData
+    } catch (error) {
+      console.error("Token refresh error:", error)
+      return null
+    }
   }
 
   private async makeRequest(endpoint: string, options?: RequestInit): Promise<any> {
+    if (!this.accessToken) {
+      throw new Error("No access token available")
+    }
+
     const response = await fetch(`${RAINDROP_API_BASE}${endpoint}`, {
       headers: {
-        Authorization: `Bearer ${this.token}`,
+        Authorization: `Bearer ${this.accessToken}`,
         "Content-Type": "application/json",
       },
       ...options,
@@ -43,7 +111,6 @@ export class RaindropAPI {
         tags: item.tags || [],
         created: item.created,
         type: item.type || "link",
-        // Include note field for progress tracking
         note: item.note || "",
       }))
     } catch (error) {
@@ -68,17 +135,11 @@ export class RaindropAPI {
   // Archive bookmark by updating tags
   async archiveBookmark(bookmarkId: number, currentTag: string): Promise<void> {
     try {
-      // Remove # from current tag if present
       const cleanCurrentTag = currentTag.startsWith("#") ? currentTag.slice(1) : currentTag
-
-      // Create archive tag
       const archiveTag = `${cleanCurrentTag}-archive`
 
-      // Get current bookmark to preserve other tags
       const bookmarkData = await this.makeRequest(`/raindrop/${bookmarkId}`)
       const currentTags = bookmarkData.item.tags || []
-
-      // Remove current tag and add archive tag
       const updatedTags = currentTags.filter((tag: string) => tag !== cleanCurrentTag).concat(archiveTag)
 
       await this.makeRequest(`/raindrop/${bookmarkId}`, {
