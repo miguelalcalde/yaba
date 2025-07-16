@@ -68,49 +68,16 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     }
   }
 
-  const handleOAuthLogin = async () => {
+  const handleOAuthLogin = () => {
     console.log("=== OAuth Login Button Clicked ===")
+    console.log("Current page URL:", window.location.href)
+    console.log("Redirecting browser to /api/auth/raindrop for OAuth flow ⬆️")
+
     setIsLoading(true)
     setAuthError(null)
 
-    try {
-      console.log("Current URL:", window.location.href)
-      console.log("About to redirect to: /api/auth/raindrop")
-
-      // First, let's test if the endpoint is reachable
-      console.log("Testing OAuth endpoint accessibility...")
-      const testResponse = await fetch("/api/auth/raindrop", {
-        method: "GET",
-        redirect: "manual", // Don't follow redirects automatically
-      })
-
-      console.log("Test response status:", testResponse.status)
-      console.log("Test response headers:", Object.fromEntries(testResponse.headers.entries()))
-
-      if (testResponse.status === 0) {
-        console.error("Network error - endpoint not reachable")
-        setAuthError("Network error: Cannot reach authentication endpoint")
-        setIsLoading(false)
-        return
-      }
-
-      if (testResponse.status >= 400) {
-        console.error("OAuth endpoint returned error:", testResponse.status)
-        const errorText = await testResponse.text()
-        console.error("Error response body:", errorText)
-        setAuthError(`Authentication endpoint error: ${testResponse.status}`)
-        setIsLoading(false)
-        return
-      }
-
-      // If we get here, the endpoint is working, so redirect
-      console.log("OAuth endpoint is accessible, redirecting...")
-      window.location.href = "/api/auth/raindrop"
-    } catch (error) {
-      console.error("Error during OAuth login:", error)
-      setAuthError(`Failed to initiate OAuth: ${error instanceof Error ? error.message : "Unknown error"}`)
-      setIsLoading(false)
-    }
+    // IMPORTANT: perform a full-page redirect (no pre-flight fetch).
+    window.location.href = "/api/auth/raindrop"
   }
 
   const handleLogout = async () => {
