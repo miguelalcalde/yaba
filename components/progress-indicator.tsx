@@ -20,18 +20,16 @@ import {
   type VideoProgress,
 } from "@/lib/progress-utils"
 import type { RaindropItem } from "@/lib/store"
+import { useRouter } from "next/navigation"
 
 interface ProgressIndicatorProps {
   item: RaindropItem
-  onProgressUpdate?: (updatedItem: RaindropItem) => void
 }
 
-export function ProgressIndicator({
-  item,
-  onProgressUpdate,
-}: ProgressIndicatorProps) {
+export function ProgressIndicator({ item }: ProgressIndicatorProps) {
   const [timeModalOpen, setTimeModalOpen] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
+  const router = useRouter()
 
   // Show for both video and audio type bookmarks
   if (item.type !== "video" && item.type !== "audio") return null
@@ -69,9 +67,8 @@ export function ProgressIndicator({
 
       await updateBookmarkProgress(item._id, updatedNote)
 
-      // Update local state
-      const updatedItem = { ...item, note: updatedNote }
-      onProgressUpdate?.(updatedItem)
+      // Refresh the page to show updated progress
+      router.refresh()
     } catch (error) {
       console.error("Error saving progress:", error)
     } finally {
@@ -87,6 +84,7 @@ export function ProgressIndicator({
             variant="ghost"
             size="sm"
             className="h-8 w-8 p-0 hover:bg-black/10 dark:hover:bg-white/10"
+            disabled={isUpdating}
           >
             {hasProgress ? (
               <Play className="w-3 h-3 fill-current" />

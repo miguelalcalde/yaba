@@ -3,39 +3,17 @@
 import type { RaindropItem } from "@/lib/store"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  ExternalLink,
-  Clock,
-  Tag,
-  MoreVertical,
-  Archive,
-  Trash2,
-} from "lucide-react"
+import { Clock, Tag } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { ProgressIndicator } from "./progress-indicator"
+import { FeedCardActions } from "./feed-card-actions"
 
 interface FeedCardProps {
   item: RaindropItem
-  onProgressUpdate?: (updatedItem: RaindropItem) => void
-  onArchive?: (itemId: number) => void
-  onDelete?: (itemId: number) => void
   currentTag: string
 }
 
-export function FeedCard({
-  item,
-  onProgressUpdate,
-  onArchive,
-  onDelete,
-  currentTag,
-}: FeedCardProps) {
+export function FeedCard({ item, currentTag }: FeedCardProps) {
   const formatDate = (dateString: string) => {
     try {
       return formatDistanceToNow(new Date(dateString), { addSuffix: true })
@@ -59,22 +37,10 @@ export function FeedCard({
     }
   }
 
-  const handleArchive = () => {
-    onArchive?.(item._id)
-  }
-
-  const handleDelete = () => {
-    onDelete?.(item._id)
-  }
-
-  // Open bookmark in Raindrop.io app
-  const handleOpenInRaindrop = () => {
-    const raindropUrl = `https://app.raindrop.io/my/0/item/${item._id}`
-    window.open(raindropUrl, "_blank", "noopener,noreferrer")
-  }
+  const raindropUrl = `https://app.raindrop.io/my/0/item/${item._id}`
 
   return (
-    <Card className=" border p-4 transition-colors cursor-pointer relative">
+    <Card className="border p-4 transition-colors cursor-pointer relative">
       <a
         href={item.link}
         target="_blank"
@@ -105,11 +71,11 @@ export function FeedCard({
             </div>
 
             {item.excerpt && (
-              <p className=" text-sm mt-1 line-clamp-2">{item.excerpt}</p>
+              <p className="text-sm mt-1 line-clamp-2">{item.excerpt}</p>
             )}
 
             {/* Metadata */}
-            <div className="flex items-center gap-3 mt-3 text-xs ">
+            <div className="flex items-center gap-3 mt-3 text-xs">
               <div className="flex items-center gap-1">
                 <span>{getTypeIcon(item.type)}</span>
                 <span className="capitalize">{item.type}</span>
@@ -160,52 +126,14 @@ export function FeedCard({
         <div className="flex items-center gap-1 flex-shrink-0">
           {/* Progress indicator for videos and audio */}
           {(item.type === "video" || item.type === "audio") && (
-            <ProgressIndicator
-              item={item}
-              onProgressUpdate={onProgressUpdate}
-            />
+            <ProgressIndicator item={item} />
           )}
 
-          {/* Raindrop.io link button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleOpenInRaindrop}
-            className="h-8 w-8 p-0 hover:bg-black/10 dark:hover:bg-white/10"
-            title="Open in Raindrop.io"
-          >
-            <ExternalLink className="w-3 h-3" />
-          </Button>
-
-          {/* More actions button */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 hover:bg-black/10 dark:hover:bg-white/10"
-              >
-                <MoreVertical className="w-3 h-3" />
-              </Button>
-            </DropdownMenuTrigger>
-
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem
-                onClick={handleArchive}
-                className="flex items-center gap-2"
-              >
-                <Archive className="w-4 h-4" />
-                Archive
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={handleDelete}
-                className="flex items-center gap-2 text-destructive focus:text-destructive"
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <FeedCardActions
+            itemId={item._id}
+            currentTag={currentTag}
+            raindropUrl={raindropUrl}
+          />
         </div>
       </div>
     </Card>

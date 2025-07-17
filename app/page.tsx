@@ -1,9 +1,8 @@
-import { checkAuthStatus, getBookmarksByTag, refreshPage } from "@/lib/actions"
+import { checkAuthStatus, getBookmarksByTag } from "@/lib/actions"
 import { NavigationTabs } from "@/components/navigation-tabs"
 import { FeedList } from "@/components/feed-list"
-import { Button } from "@/components/ui/button"
-import { RefreshCw } from "lucide-react"
-import { redirect } from "next/navigation"
+import { FeedListSkeleton } from "@/components/feed-list-skeleton"
+import { Suspense } from "react"
 
 interface PageProps {
   searchParams: Promise<{ tab?: string }>
@@ -33,31 +32,31 @@ export default async function HomePage({ searchParams }: PageProps) {
     )
   }
 
-  // Server-side data fetching for authenticated users
+  // Fetch counts for NavigationTabs to render immediately
   const [readData, watchData] = await Promise.all([
     getBookmarksByTag("#read"),
     getBookmarksByTag("#watch"),
   ])
 
-  const activeTab = (params.tab as "read" | "watch") || "read"
-  const currentItems = activeTab === "read" ? readData.items : watchData.items
-  const currentTag = activeTab === "read" ? "#read" : "#watch"
+  const currentTab = (params.tab as "read" | "watch") || "read"
 
   return (
     <div className="min-h-screen social-container">
       <div className="max-w-2xl mx-auto flex flex-col gap-4">
         <NavigationTabs
-          activeTab={activeTab}
+          activeTab={currentTab}
           readCount={readData.items.length}
           watchCount={watchData.items.length}
         />
 
         <div className="pb-6">
-          <FeedList
-            items={currentItems}
-            feedType={activeTab}
-            currentTag={currentTag}
-          />
+          {/* Dynamic key triggers immediate skeleton on tab changes */}
+          <Suspense key={currentTab} fallback={<FeedListSkeleton />}>
+            <FeedList
+              feedType={currentTab}
+              currentTag={currentTab === "read" ? "#read" : "#watch"}
+            />
+          </Suspense>
         </div>
       </div>
     </div>
