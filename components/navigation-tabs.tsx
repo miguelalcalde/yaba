@@ -1,52 +1,80 @@
-"use client"
-
-import { useAppStore } from "@/lib/store"
-import { Button } from "@/components/ui/button"
-import { BookOpen, Play, Settings } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button";
+import { BookOpen, Play, RefreshCw } from "lucide-react";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { SettingsDialog } from "./settings-dialog";
+import { refreshPage } from "@/lib/actions";
 
 interface NavigationTabsProps {
-  onSettingsClick: () => void
+  activeTab?: "read" | "watch";
+  readCount?: number;
+  watchCount?: number;
 }
 
-export function NavigationTabs({ onSettingsClick }: NavigationTabsProps) {
-  const { activeTab, setActiveTab, readItems, watchItems } = useAppStore()
-
+export function NavigationTabs({
+  activeTab = "read",
+  readCount = 0,
+  watchCount = 0,
+}: NavigationTabsProps) {
   return (
-    <div className="sticky top-0 border-b bg-background/80 backdrop-blur-md z-40">
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center space-x-1 text-muted-foreground">
-          <Button
-            variant={activeTab === "read" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setActiveTab("read")}
-            className={cn("flex items-center gap-2", activeTab === "read" && "text-bold text-white")}
-          >
-            <BookOpen className="w-4 h-4" />
-            Read
-            {readItems.length > 0 && (
-              <span className="bg-white/20 text-xs px-1.5 py-0.5 rounded-full">{readItems.length}</span>
-            )}
-          </Button>
+    <>
+      <div className="sticky top-0 border border-t-0 bg-background/80 backdrop-blur-md z-40">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center space-x-1 text-muted-foreground">
+            <Link href="/?tab=read">
+              <Button
+                variant={activeTab === "read" ? "default" : "ghost"}
+                size="sm"
+                className={cn(
+                  "flex items-center gap-2",
+                  activeTab === "read" && "text-bold text-white"
+                )}
+              >
+                <BookOpen className="w-4 h-4" />
+                Read
+                {readCount > 0 && (
+                  <span className="bg-white/20 text-xs px-1.5 py-0.5 rounded-full">
+                    {readCount}
+                  </span>
+                )}
+              </Button>
+            </Link>
 
-          <Button
-            variant={activeTab === "watch" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setActiveTab("watch")}
-            className={cn("flex items-center gap-2", activeTab === "watch" && "text-bold text-white")}
-          >
-            <Play className="w-4 h-4" />
-            Watch
-            {watchItems.length > 0 && (
-              <span className="bg-white/20 text-xs px-1.5 py-0.5 rounded-full">{watchItems.length}</span>
-            )}
-          </Button>
+            <Link href="/?tab=watch">
+              <Button
+                variant={activeTab === "watch" ? "default" : "ghost"}
+                size="sm"
+                className={cn(
+                  "flex items-center gap-2",
+                  activeTab === "watch" && "text-bold text-white"
+                )}
+              >
+                <Play className="w-4 h-4" />
+                Watch
+                {watchCount > 0 && (
+                  <span className="bg-white/20 text-xs px-1.5 py-0.5 rounded-full">
+                    {watchCount}
+                  </span>
+                )}
+              </Button>
+            </Link>
+          </div>
+          <div className="flex items-center space-x-2">
+            <form action={refreshPage}>
+              <input type="hidden" name="tab" value={activeTab} />
+              <Button
+                type="submit"
+                variant="ghost"
+                size="sm"
+                className="text-social-text-muted hover:text-social-text"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+            </form>
+            <SettingsDialog />
+          </div>
         </div>
-
-        <Button variant="ghost" size="sm" onClick={onSettingsClick} className="">
-          <Settings className="w-4 h-4" />
-        </Button>
       </div>
-    </div>
-  )
+    </>
+  );
 }

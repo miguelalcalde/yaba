@@ -1,82 +1,82 @@
-"use client"
+"use client";
 
-import type { RaindropItem } from "@/lib/store"
-import { FeedCard } from "./feed-card"
-import { Loader2, BookOpen, AlertCircle } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { useState } from "react"
+import type { RaindropItem } from "@/lib/store";
+import { FeedCard } from "./feed-card";
+import { BookOpen } from "lucide-react";
+import { useState } from "react";
+import { archiveBookmark, deleteBookmark } from "@/lib/actions";
+import { useRouter } from "next/navigation";
 
 interface FeedListProps {
-  items: RaindropItem[]
-  isLoading: boolean
-  error: string | null
-  feedType: "read" | "watch"
-  onArchive?: (itemId: number) => void
-  onDelete?: (itemId: number) => void
-  currentTag: string
+  items: RaindropItem[];
+  feedType: "read" | "watch";
+  currentTag: string;
 }
 
-export function FeedList({ items, isLoading, error, feedType, onArchive, onDelete, currentTag }: FeedListProps) {
+export function FeedList({ items, feedType, currentTag }: FeedListProps) {
+  const router = useRouter();
   // Local state to handle progress updates without full refetch
-  const [localItems, setLocalItems] = useState<RaindropItem[]>([])
-
-  // Use local items if available, otherwise use props items
-  const displayItems = localItems.length > 0 ? localItems : items
-
-  // Update local items when props items change
-  if (items !== displayItems && localItems.length === 0) {
-    setLocalItems(items)
-  }
+  const [localItems, setLocalItems] = useState<RaindropItem[]>(items);
 
   const handleProgressUpdate = (updatedItem: RaindropItem) => {
-    setLocalItems((prev) => prev.map((item) => (item._id === updatedItem._id ? updatedItem : item)))
-  }
+    setLocalItems((prev) =>
+      prev.map((item) => (item._id === updatedItem._id ? updatedItem : item))
+    );
+  };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12 px-0">
-        <div className="flex items-center gap-2 text-social-text-muted">
-          <Loader2 className="w-5 h-5 animate-spin" />
-          <span>Loading {feedType} items...</span>
-        </div>
-      </div>
-    )
-  }
+  const handleArchive = async (itemId: number) => {
+    try {
+      await archiveBookmark(itemId, currentTag);
+      // Remove item from local state for immediate feedback
+      setLocalItems((prev) => prev.filter((item) => item._id !== itemId));
+      // Refresh the page to get updated data from server
+      router.refresh();
+    } catch (error) {
+      console.error("Failed to archive bookmark:", error);
+      // Could add toast notification here
+    }
+  };
 
-  if (error) {
-    return (
-      <Alert className="mx-4">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    )
-  }
+  const handleDelete = async (itemId: number) => {
+    try {
+      await deleteBookmark(itemId);
+      // Remove item from local state for immediate feedback
+      setLocalItems((prev) => prev.filter((item) => item._id !== itemId));
+      // Refresh the page to get updated data from server
+      router.refresh();
+    } catch (error) {
+      console.error("Failed to delete bookmark:", error);
+      // Could add toast notification here
+    }
+  };
 
-  if (displayItems.length === 0) {
+  if (localItems.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <BookOpen className="w-12 h-12 text-social-text-muted mb-4" />
-        <h3 className="text-lg font-semibold text-social-text mb-2">No {feedType} items found</h3>
+        <h3 className="text-lg font-semibold text-social-text mb-2">
+          No {feedType} items found
+        </h3>
         <p className="text-social-text-muted max-w-md">
-          No bookmarks found with the configured tag. Try adjusting your tag settings or add some bookmarks to
-          Raindrop.io.
+          No bookmarks found with the configured tag. Try adjusting your tag
+          settings or add some bookmarks to Raindrop.io.
         </p>
       </div>
-    )
+    );
   }
 
   return (
     <div className="space-y-3 px-0">
-      {displayItems.map((item) => (
+      {localItems.map((item) => (
         <FeedCard
           key={item._id}
           item={item}
           onProgressUpdate={handleProgressUpdate}
-          onArchive={onArchive}
-          onDelete={onDelete}
+          onArchive={handleArchive}
+          onDelete={handleDelete}
           currentTag={currentTag}
         />
       ))}
     </div>
-  )
+  );
 }

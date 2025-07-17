@@ -1,139 +1,153 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useAppStore } from "@/lib/store"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, CheckCircle, AlertCircle, ExternalLink, LogOut, User } from "lucide-react"
-
-interface SettingsDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}
+import { useState, useEffect } from "react";
+import { useAppStore } from "@/lib/store";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Loader2,
+  CheckCircle,
+  AlertCircle,
+  ExternalLink,
+  LogOut,
+  User,
+  Settings,
+} from "lucide-react";
+import { checkAuthStatus, logoutUser } from "@/lib/actions";
 
 interface AuthUser {
-  id: number
-  name: string | null
-  email: string | null
+  id: number;
+  name: string | null;
+  email: string | null;
 }
 
-export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
-  const { readTag, watchTag, setReadTag, setWatchTag, setAuthenticated } = useAppStore()
+/**
+ * Standalone settings dialog. Receiving no props.
+ * Open and close states are handled within this component.
+ * @returns
+ */
 
-  const [localReadTag, setLocalReadTag] = useState(readTag)
-  const [localWatchTag, setLocalWatchTag] = useState(watchTag)
-  const [isLoading, setIsLoading] = useState(false)
-  const [authUser, setAuthUser] = useState<AuthUser | null>(null)
-  const [authError, setAuthError] = useState<string | null>(null)
+export function SettingsDialog() {
+  const { readTag, watchTag, setReadTag, setWatchTag } = useAppStore();
+
+  const [localReadTag, setLocalReadTag] = useState(readTag);
+  const [localWatchTag, setLocalWatchTag] = useState(watchTag);
+  const [isLoading, setIsLoading] = useState(false);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   // Check authentication status when dialog opens
   useEffect(() => {
-    if (open) {
-      checkAuthStatus()
-    }
-  }, [open])
+    checkAuth();
+  }, []);
 
-  const checkAuthStatus = async () => {
+  const checkAuth = async () => {
     try {
-      const response = await fetch("/api/auth/me")
-      if (response.ok) {
-        const data = await response.json()
-        if (data.authenticated) {
-          setAuthUser(data.user)
-          setAuthenticated(true)
-        } else {
-          setAuthUser(null)
-          setAuthenticated(false)
-        }
+      const authResult = await checkAuthStatus();
+      if (authResult.authenticated && authResult.user) {
+        setAuthUser(authResult.user);
       } else {
-        setAuthUser(null)
-        setAuthenticated(false)
+        setAuthUser(null);
       }
     } catch (error) {
-      console.error("Auth check failed:", error)
-      setAuthUser(null)
-      setAuthenticated(false)
+      console.error("Auth check failed:", error);
+      setAuthUser(null);
     }
-  }
+  };
 
   const handleOAuthLogin = () => {
-    setIsLoading(true)
-    setAuthError(null)
+    setIsLoading(true);
+    setAuthError(null);
     // Redirect to OAuth flow
-    window.location.href = "/api/auth/raindrop"
-  }
+    window.location.href = "/api/auth/raindrop";
+  };
 
   const handleLogout = async () => {
     try {
-      setIsLoading(true)
-      const response = await fetch("/api/auth/logout", { method: "POST" })
+      setIsLoading(true);
+      const result = await logoutUser();
 
-      if (response.ok) {
-        setAuthUser(null)
-        setAuthenticated(false)
+      if (result.success) {
+        setAuthUser(null);
       } else {
-        throw new Error("Logout failed")
+        throw new Error("Logout failed");
       }
     } catch (error) {
-      console.error("Logout error:", error)
-      setAuthError("Failed to logout. Please try again.")
+      console.error("Logout error:", error);
+      setAuthError("Failed to logout. Please try again.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleSave = () => {
-    setReadTag(localReadTag)
-    setWatchTag(localWatchTag)
-    onOpenChange(false)
-  }
+    setReadTag(localReadTag);
+    setWatchTag(localWatchTag);
+  };
 
   // Check for auth errors in URL params
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const authError = urlParams.get("auth_error")
+    const urlParams = new URLSearchParams(window.location.search);
+    const authError = urlParams.get("auth_error");
 
     if (authError) {
-      let errorMessage = "Authentication failed"
+      let errorMessage = "Authentication failed";
       switch (authError) {
         case "access_denied":
-          errorMessage = "Access was denied. Please try again."
-          break
+          errorMessage = "Access was denied. Please try again.";
+          break;
         case "invalid_state":
-          errorMessage = "Security validation failed. Please try again."
-          break
+          errorMessage = "Security validation failed. Please try again.";
+          break;
         case "callback_failed":
-          errorMessage = "Authentication callback failed. Please try again."
-          break
+          errorMessage = "Authentication callback failed. Please try again.";
+          break;
         case "missing_parameters":
-          errorMessage = "Missing required parameters. Please try again."
-          break
+          errorMessage = "Missing required parameters. Please try again.";
+          break;
       }
 
-      setAuthError(errorMessage)
+      setAuthError(errorMessage);
 
       // Clean up URL
-      const newUrl = new URL(window.location.href)
-      newUrl.searchParams.delete("auth_error")
-      window.history.replaceState({}, "", newUrl.toString())
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete("auth_error");
+      window.history.replaceState({}, "", newUrl.toString());
     }
-  }, [])
+  }, []);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm" className="">
+          <Settings className="w-4 h-4" />
+        </Button>
+      </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
-          <DialogDescription>Configure your Raindrop.io integration and feed tags.</DialogDescription>
+          <DialogDescription>
+            Configure your Raindrop.io integration and feed tags.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Authentication Section */}
           <div className="space-y-3">
-            <Label className="text-base font-medium">Raindrop.io Authentication</Label>
+            <Label className="text-base font-medium">
+              Raindrop.io Authentication
+            </Label>
 
             {authUser ? (
               <div className="space-y-3">
@@ -142,12 +156,20 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                   <AlertDescription className="text-green-800">
                     <div className="flex items-center gap-2">
                       <User className="w-4 h-4" />
-                      <span>Signed in as {authUser.name || authUser.email || "Raindrop User"}</span>
+                      <span>
+                        Signed in as{" "}
+                        {authUser.name || authUser.email || "Raindrop User"}
+                      </span>
                     </div>
                   </AlertDescription>
                 </Alert>
 
-                <Button variant="outline" onClick={handleLogout} disabled={isLoading} className="w-full bg-transparent">
+                <Button
+                  variant="outline"
+                  onClick={handleLogout}
+                  disabled={isLoading}
+                  className="w-full bg-transparent"
+                >
                   {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -164,10 +186,15 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             ) : (
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  Connect your Raindrop.io account to access your bookmarks securely.
+                  Connect your Raindrop.io account to access your bookmarks
+                  securely.
                 </p>
 
-                <Button onClick={handleOAuthLogin} disabled={isLoading} className="w-full">
+                <Button
+                  onClick={handleOAuthLogin}
+                  disabled={isLoading}
+                  className="w-full"
+                >
                   {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -186,7 +213,9 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             {authError && (
               <Alert className="border-red-200 bg-red-50">
                 <AlertCircle className="h-4 w-4 text-red-600" />
-                <AlertDescription className="text-red-800">{authError}</AlertDescription>
+                <AlertDescription className="text-red-800">
+                  {authError}
+                </AlertDescription>
               </Alert>
             )}
           </div>
@@ -216,12 +245,12 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
         </div>
 
         <div className="flex justify-end gap-2 pt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
+          <DialogClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </DialogClose>
           <Button onClick={handleSave}>Save Changes</Button>
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
