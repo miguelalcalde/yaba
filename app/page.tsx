@@ -1,12 +1,13 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useAppStore } from "@/lib/store"
-import { NavigationTabs } from "@/components/navigation-tabs"
-import { FeedList } from "@/components/feed-list"
-import { SettingsDialog } from "@/components/settings-dialog"
-import { Button } from "@/components/ui/button"
-import { RefreshCw } from "lucide-react"
+import { useEffect, useState } from "react";
+import { useAppStore } from "@/lib/store";
+import { NavigationTabs } from "@/components/navigation-tabs";
+import { FeedList } from "@/components/feed-list";
+import { SettingsDialog } from "@/components/settings-dialog";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
+import { getBookmarksByTag } from "@/lib/actions";
 
 export default function HomePage() {
   const {
@@ -23,153 +24,156 @@ export default function HomePage() {
     setLoading,
     setError,
     setAuthenticated,
-  } = useAppStore()
+  } = useAppStore();
 
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
   // Check authentication on app load
   useEffect(() => {
-    checkAuthStatus()
-  }, [])
+    checkAuthStatus();
+  }, []);
 
   const checkAuthStatus = async () => {
     try {
-      const response = await fetch("/api/auth/me")
+      const response = await fetch("/api/auth/me");
       if (response.ok) {
-        const data = await response.json()
-        setAuthenticated(data.authenticated)
+        const data = await response.json();
+        setAuthenticated(data.authenticated);
 
         if (data.authenticated) {
           // Auto-fetch data if authenticated
-          fetchFeedData()
+          fetchFeedData();
         }
       } else {
-        setAuthenticated(false)
+        setAuthenticated(false);
       }
     } catch (error) {
-      console.error("Auth check failed:", error)
-      setAuthenticated(false)
+      console.error("Auth check failed:", error);
+      setAuthenticated(false);
     }
-  }
+  };
 
   const fetchFeedData = async (forceRefresh = false) => {
     if (!isAuthenticated) {
-      setError("Please sign in with your Raindrop.io account")
-      setSettingsOpen(true)
-      return
+      setError("Please sign in with your Raindrop.io account");
+      setSettingsOpen(true);
+      return;
     }
 
     // Don't refetch if we have data and it's not a forced refresh
     if (!forceRefresh && (readItems.length > 0 || watchItems.length > 0)) {
-      return
+      return;
     }
 
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
-      const [readResponse, watchResponse] = await Promise.all([
-        fetch(`/api/bookmarks/${encodeURIComponent(readTag)}`),
-        fetch(`/api/bookmarks/${encodeURIComponent(watchTag)}`),
-      ])
+      const [readData, watchData] = await Promise.all([
+        getBookmarksByTag(readTag),
+        getBookmarksByTag(watchTag),
+      ]);
 
-      if (!readResponse.ok || !watchResponse.ok) {
-        if (readResponse.status === 401 || watchResponse.status === 401) {
-          setAuthenticated(false)
-          setError("Authentication expired. Please sign in again.")
-          setSettingsOpen(true)
-          return
-        }
-        throw new Error("Failed to fetch bookmarks")
+      setReadItems(readData.items);
+      setWatchItems(watchData.items);
+      setLastRefresh(new Date());
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to fetch bookmarks";
+
+      // Handle authentication errors
+      if (
+        errorMessage.includes("Authentication required") ||
+        errorMessage.includes("Failed to authenticate")
+      ) {
+        setAuthenticated(false);
+        setError("Authentication expired. Please sign in again.");
+        setSettingsOpen(true);
+        return;
       }
 
-      const [readData, watchData] = await Promise.all([readResponse.json(), watchResponse.json()])
-
-      setReadItems(readData.items)
-      setWatchItems(watchData.items)
-      setLastRefresh(new Date())
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to fetch bookmarks"
-      setError(errorMessage)
+      setError(errorMessage);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleRefresh = () => {
-    fetchFeedData(true)
-  }
+    fetchFeedData(true);
+  };
 
   // Handle archive action
   const handleArchive = async (itemId: number) => {
-    if (!isAuthenticated) return
+    if (!isAuthenticated) return;
 
     try {
-      const currentTag = activeTab === "read" ? readTag : watchTag
+      const currentTag = activeTab === "read" ? readTag : watchTag;
       const response = await fetch(`/api/bookmarks/${itemId}/archive`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ currentTag }),
-      })
+      });
 
       if (!response.ok) {
-        throw new Error("Failed to archive bookmark")
+        throw new Error("Failed to archive bookmark");
       }
 
       // Remove item from current list
       if (activeTab === "read") {
-        setReadItems(readItems.filter((item) => item._id !== itemId))
+        setReadItems(readItems.filter((item) => item._id !== itemId));
       } else {
-        setWatchItems(watchItems.filter((item) => item._id !== itemId))
+        setWatchItems(watchItems.filter((item) => item._id !== itemId));
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to archive bookmark"
-      setError(errorMessage)
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to archive bookmark";
+      setError(errorMessage);
     }
-  }
+  };
 
   // Handle delete action
   const handleDelete = async (itemId: number) => {
-    if (!isAuthenticated) return
+    if (!isAuthenticated) return;
 
     try {
       const response = await fetch(`/api/bookmarks/${itemId}`, {
         method: "DELETE",
-      })
+      });
 
       if (!response.ok) {
-        throw new Error("Failed to delete bookmark")
+        throw new Error("Failed to delete bookmark");
       }
 
       // Remove item from current list
       if (activeTab === "read") {
-        setReadItems(readItems.filter((item) => item._id !== itemId))
+        setReadItems(readItems.filter((item) => item._id !== itemId));
       } else {
-        setWatchItems(watchItems.filter((item) => item._id !== itemId))
+        setWatchItems(watchItems.filter((item) => item._id !== itemId));
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to delete bookmark"
-      setError(errorMessage)
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to delete bookmark";
+      setError(errorMessage);
     }
-  }
+  };
 
   // Initial data fetch when authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      fetchFeedData()
+      fetchFeedData();
     }
-  }, [isAuthenticated, readTag, watchTag])
+  }, [isAuthenticated, readTag, watchTag]);
 
   // Show settings dialog if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
-      setSettingsOpen(true)
+      setSettingsOpen(true);
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated]);
 
-  const currentItems = activeTab === "read" ? readItems : watchItems
-  const currentTag = activeTab === "read" ? readTag : watchTag
+  const currentItems = activeTab === "read" ? readItems : watchItems;
+  const currentTag = activeTab === "read" ? readTag : watchTag;
 
   return (
     <div className="min-h-screen social-container">
@@ -179,7 +183,9 @@ export default function HomePage() {
         {/* Refresh button */}
         <div className="flex justify-between items-center px-4 py-3 social-border border-b-0">
           <div className="text-sm text-social-text-muted">
-            {lastRefresh && <span>Last updated: {lastRefresh.toLocaleTimeString()}</span>}
+            {lastRefresh && (
+              <span>Last updated: {lastRefresh.toLocaleTimeString()}</span>
+            )}
           </div>
           <Button
             variant="ghost"
@@ -188,7 +194,9 @@ export default function HomePage() {
             disabled={isLoading || !isAuthenticated}
             className="text-social-text-muted hover:text-social-text"
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
+            />
           </Button>
         </div>
 
@@ -207,5 +215,5 @@ export default function HomePage() {
 
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
-  )
+  );
 }
