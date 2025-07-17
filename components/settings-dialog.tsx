@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { useAppStore } from "@/lib/store";
+import { useState, useEffect } from "react"
+import { useAppStore } from "@/lib/store"
 import {
   Dialog,
   DialogClose,
@@ -10,11 +10,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   Loader2,
   CheckCircle,
@@ -23,13 +23,13 @@ import {
   LogOut,
   User,
   Settings,
-} from "lucide-react";
-import { checkAuthStatus, logoutUser } from "@/lib/actions";
+} from "lucide-react"
+import { checkAuthStatus, logoutUser } from "@/lib/actions"
 
 interface AuthUser {
-  id: number;
-  name: string | null;
-  email: string | null;
+  id: number
+  name: string | null
+  email: string | null
 }
 
 /**
@@ -39,93 +39,93 @@ interface AuthUser {
  */
 
 export function SettingsDialog() {
-  const { readTag, watchTag, setReadTag, setWatchTag } = useAppStore();
+  const { readTag, watchTag, setReadTag, setWatchTag } = useAppStore()
 
-  const [localReadTag, setLocalReadTag] = useState(readTag);
-  const [localWatchTag, setLocalWatchTag] = useState(watchTag);
-  const [isLoading, setIsLoading] = useState(false);
-  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [localReadTag, setLocalReadTag] = useState(readTag)
+  const [localWatchTag, setLocalWatchTag] = useState(watchTag)
+  const [isLoading, setIsLoading] = useState(false)
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null)
+  const [authError, setAuthError] = useState<string | null>(null)
 
   // Check authentication status when dialog opens
   useEffect(() => {
-    checkAuth();
-  }, []);
+    checkAuth()
+  }, [])
 
   const checkAuth = async () => {
     try {
-      const authResult = await checkAuthStatus();
+      const authResult = await checkAuthStatus()
       if (authResult.authenticated && authResult.user) {
-        setAuthUser(authResult.user);
+        setAuthUser(authResult.user)
       } else {
-        setAuthUser(null);
+        setAuthUser(null)
       }
     } catch (error) {
-      console.error("Auth check failed:", error);
-      setAuthUser(null);
+      console.error("Auth check failed:", error)
+      setAuthUser(null)
     }
-  };
+  }
 
   const handleOAuthLogin = () => {
-    setIsLoading(true);
-    setAuthError(null);
+    setIsLoading(true)
+    setAuthError(null)
     // Redirect to OAuth flow
-    window.location.href = "/api/auth/raindrop";
-  };
+    window.location.href = "/api/auth/raindrop"
+  }
 
   const handleLogout = async () => {
     try {
-      setIsLoading(true);
-      const result = await logoutUser();
+      setIsLoading(true)
+      const result = await logoutUser()
 
       if (result.success) {
-        setAuthUser(null);
+        setAuthUser(null)
       } else {
-        throw new Error("Logout failed");
+        throw new Error("Logout failed")
       }
     } catch (error) {
-      console.error("Logout error:", error);
-      setAuthError("Failed to logout. Please try again.");
+      console.error("Logout error:", error)
+      setAuthError("Failed to logout. Please try again.")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleSave = () => {
-    setReadTag(localReadTag);
-    setWatchTag(localWatchTag);
-  };
+    setReadTag(localReadTag)
+    setWatchTag(localWatchTag)
+  }
 
   // Check for auth errors in URL params
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const authError = urlParams.get("auth_error");
+    const urlParams = new URLSearchParams(window.location.search)
+    const authError = urlParams.get("auth_error")
 
     if (authError) {
-      let errorMessage = "Authentication failed";
+      let errorMessage = "Authentication failed"
       switch (authError) {
         case "access_denied":
-          errorMessage = "Access was denied. Please try again.";
-          break;
+          errorMessage = "Access was denied. Please try again."
+          break
         case "invalid_state":
-          errorMessage = "Security validation failed. Please try again.";
-          break;
+          errorMessage = "Security validation failed. Please try again."
+          break
         case "callback_failed":
-          errorMessage = "Authentication callback failed. Please try again.";
-          break;
+          errorMessage = "Authentication callback failed. Please try again."
+          break
         case "missing_parameters":
-          errorMessage = "Missing required parameters. Please try again.";
-          break;
+          errorMessage = "Missing required parameters. Please try again."
+          break
       }
 
-      setAuthError(errorMessage);
+      setAuthError(errorMessage)
 
       // Clean up URL
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.delete("auth_error");
-      window.history.replaceState({}, "", newUrl.toString());
+      const newUrl = new URL(window.location.href)
+      newUrl.searchParams.delete("auth_error")
+      window.history.replaceState({}, "", newUrl.toString())
     }
-  }, []);
+  }, [])
 
   return (
     <Dialog>
@@ -252,5 +252,5 @@ export function SettingsDialog() {
         </div>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

@@ -1,16 +1,16 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Play, Clock } from "lucide-react";
-import { TimeInputModal } from "./time-input-modal";
-import { updateBookmarkProgress } from "@/lib/actions";
+} from "@/components/ui/dropdown-menu"
+import { Play, Clock } from "lucide-react"
+import { TimeInputModal } from "./time-input-modal"
+import { updateBookmarkProgress } from "@/lib/actions"
 import {
   parseProgressFromNote,
   updateProgressInNote,
@@ -18,66 +18,66 @@ import {
   detectVideoPlatform,
   formatTimestamp,
   type VideoProgress,
-} from "@/lib/progress-utils";
-import type { RaindropItem } from "@/lib/store";
+} from "@/lib/progress-utils"
+import type { RaindropItem } from "@/lib/store"
 
 interface ProgressIndicatorProps {
-  item: RaindropItem;
-  onProgressUpdate?: (updatedItem: RaindropItem) => void;
+  item: RaindropItem
+  onProgressUpdate?: (updatedItem: RaindropItem) => void
 }
 
 export function ProgressIndicator({
   item,
   onProgressUpdate,
 }: ProgressIndicatorProps) {
-  const [timeModalOpen, setTimeModalOpen] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [timeModalOpen, setTimeModalOpen] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
 
   // Show for both video and audio type bookmarks
-  if (item.type !== "video" && item.type !== "audio") return null;
+  if (item.type !== "video" && item.type !== "audio") return null
 
-  const progressData = parseProgressFromNote(item.note);
-  const videoProgress = progressData?.video;
-  const hasProgress = !!videoProgress;
+  const progressData = parseProgressFromNote(item.note)
+  const videoProgress = progressData?.video
+  const hasProgress = !!videoProgress
 
   const handleContinueWatching = () => {
-    if (!videoProgress) return;
+    if (!videoProgress) return
 
-    const platform = detectVideoPlatform(item.link);
+    const platform = detectVideoPlatform(item.link)
     const resumeUrl = generateResumeUrl(
       item.link,
       videoProgress.timestamp,
       platform
-    );
-    window.open(resumeUrl, "_blank", "noopener,noreferrer");
-  };
+    )
+    window.open(resumeUrl, "_blank", "noopener,noreferrer")
+  }
 
   const handleSaveProgress = async (timestamp: number) => {
-    setIsUpdating(true);
+    setIsUpdating(true)
     try {
-      const platform = detectVideoPlatform(item.link);
+      const platform = detectVideoPlatform(item.link)
       const newVideoProgress: VideoProgress = {
         type: "video",
         timestamp,
         lastUpdated: new Date().toISOString(),
         platform,
-      };
+      }
 
       const updatedNote = updateProgressInNote(item.note, {
         video: newVideoProgress,
-      });
+      })
 
-      await updateBookmarkProgress(item._id, updatedNote);
+      await updateBookmarkProgress(item._id, updatedNote)
 
       // Update local state
-      const updatedItem = { ...item, note: updatedNote };
-      onProgressUpdate?.(updatedItem);
+      const updatedItem = { ...item, note: updatedNote }
+      onProgressUpdate?.(updatedItem)
     } catch (error) {
-      console.error("Error saving progress:", error);
+      console.error("Error saving progress:", error)
     } finally {
-      setIsUpdating(false);
+      setIsUpdating(false)
     }
-  };
+  }
 
   return (
     <>
@@ -134,5 +134,5 @@ export function ProgressIndicator({
         title={item.title}
       />
     </>
-  );
+  )
 }

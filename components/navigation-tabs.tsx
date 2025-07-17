@@ -1,14 +1,14 @@
-import { Button } from "@/components/ui/button";
-import { BookOpen, Play, RefreshCw } from "lucide-react";
-import { cn } from "@/lib/utils";
-import Link from "next/link";
-import { SettingsDialog } from "./settings-dialog";
-import { refreshPage } from "@/lib/actions";
+import { Button } from "@/components/ui/button"
+import { BookOpen, Play, RefreshCw } from "lucide-react"
+import { cn } from "@/lib/utils"
+import Link from "next/link"
+import { SettingsDialog } from "./settings-dialog"
+import { refreshPage } from "@/lib/actions"
 
 interface NavigationTabsProps {
-  activeTab?: "read" | "watch";
-  readCount?: number;
-  watchCount?: number;
+  activeTab?: "read" | "watch"
+  readCount?: number
+  watchCount?: number
 }
 
 export function NavigationTabs({
@@ -76,5 +76,5 @@ export function NavigationTabs({
         </div>
       </div>
     </>
-  );
+  )
 }

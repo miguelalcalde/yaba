@@ -1,18 +1,18 @@
-import { checkAuthStatus, getBookmarksByTag, refreshPage } from "@/lib/actions";
-import { NavigationTabs } from "@/components/navigation-tabs";
-import { FeedList } from "@/components/feed-list";
-import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
-import { redirect } from "next/navigation";
+import { checkAuthStatus, getBookmarksByTag, refreshPage } from "@/lib/actions"
+import { NavigationTabs } from "@/components/navigation-tabs"
+import { FeedList } from "@/components/feed-list"
+import { Button } from "@/components/ui/button"
+import { RefreshCw } from "lucide-react"
+import { redirect } from "next/navigation"
 
 interface PageProps {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string }>
 }
 
 export default async function HomePage({ searchParams }: PageProps) {
-  const params = await searchParams;
+  const params = await searchParams
   // Server-side authentication check
-  const authResult = await checkAuthStatus();
+  const authResult = await checkAuthStatus()
 
   if (!authResult.authenticated) {
     // For unauthenticated users, show the settings dialog
@@ -30,18 +30,18 @@ export default async function HomePage({ searchParams }: PageProps) {
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   // Server-side data fetching for authenticated users
   const [readData, watchData] = await Promise.all([
     getBookmarksByTag("#read"),
     getBookmarksByTag("#watch"),
-  ]);
+  ])
 
-  const activeTab = (params.tab as "read" | "watch") || "read";
-  const currentItems = activeTab === "read" ? readData.items : watchData.items;
-  const currentTag = activeTab === "read" ? "#read" : "#watch";
+  const activeTab = (params.tab as "read" | "watch") || "read"
+  const currentItems = activeTab === "read" ? readData.items : watchData.items
+  const currentTag = activeTab === "read" ? "#read" : "#watch"
 
   return (
     <div className="min-h-screen social-container">
@@ -61,5 +61,5 @@ export default async function HomePage({ searchParams }: PageProps) {
         </div>
       </div>
     </div>
-  );
+  )
 }

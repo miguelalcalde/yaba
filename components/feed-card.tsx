@@ -1,15 +1,15 @@
-"use client";
+"use client"
 
-import type { RaindropItem } from "@/lib/store";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import type { RaindropItem } from "@/lib/store"
+import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu"
 import {
   ExternalLink,
   Clock,
@@ -17,16 +17,16 @@ import {
   MoreVertical,
   Archive,
   Trash2,
-} from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { ProgressIndicator } from "./progress-indicator";
+} from "lucide-react"
+import { formatDistanceToNow } from "date-fns"
+import { ProgressIndicator } from "./progress-indicator"
 
 interface FeedCardProps {
-  item: RaindropItem;
-  onProgressUpdate?: (updatedItem: RaindropItem) => void;
-  onArchive?: (itemId: number) => void;
-  onDelete?: (itemId: number) => void;
-  currentTag: string;
+  item: RaindropItem
+  onProgressUpdate?: (updatedItem: RaindropItem) => void
+  onArchive?: (itemId: number) => void
+  onDelete?: (itemId: number) => void
+  currentTag: string
 }
 
 export function FeedCard({
@@ -38,40 +38,40 @@ export function FeedCard({
 }: FeedCardProps) {
   const formatDate = (dateString: string) => {
     try {
-      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true })
     } catch {
-      return "Unknown date";
+      return "Unknown date"
     }
-  };
+  }
 
   const getTypeIcon = (type: string) => {
     switch (type) {
       case "video":
-        return "🎥";
+        return "🎥"
       case "article":
-        return "📄";
+        return "📄"
       case "image":
-        return "🖼️";
+        return "🖼️"
       case "audio":
-        return "🎵";
+        return "🎵"
       default:
-        return "🔗";
+        return "🔗"
     }
-  };
+  }
 
   const handleArchive = () => {
-    onArchive?.(item._id);
-  };
+    onArchive?.(item._id)
+  }
 
   const handleDelete = () => {
-    onDelete?.(item._id);
-  };
+    onDelete?.(item._id)
+  }
 
   // Open bookmark in Raindrop.io app
   const handleOpenInRaindrop = () => {
-    const raindropUrl = `https://app.raindrop.io/my/0/item/${item._id}`;
-    window.open(raindropUrl, "_blank", "noopener,noreferrer");
-  };
+    const raindropUrl = `https://app.raindrop.io/my/0/item/${item._id}`
+    window.open(raindropUrl, "_blank", "noopener,noreferrer")
+  }
 
   return (
     <Card className=" border p-4 transition-colors cursor-pointer relative">
@@ -90,7 +90,7 @@ export function FeedCard({
                 alt={item.title}
                 className="w-16 h-16 rounded-lg object-cover"
                 onError={(e) => {
-                  e.currentTarget.style.display = "none";
+                  e.currentTarget.style.display = "none"
                 }}
               />
             </div>
@@ -209,5 +209,5 @@ export function FeedCard({
         </div>
       </div>
     </Card>
-  );
+  )
 }
