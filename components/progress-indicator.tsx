@@ -10,8 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Play, Clock } from "lucide-react";
 import { TimeInputModal } from "./time-input-modal";
-import { useAppStore } from "@/lib/store";
-import { RaindropAPI } from "@/lib/raindrop-api";
+import { updateBookmarkProgress } from "@/lib/actions";
 import {
   parseProgressFromNote,
   updateProgressInNote,
@@ -31,7 +30,6 @@ export function ProgressIndicator({
   item,
   onProgressUpdate,
 }: ProgressIndicatorProps) {
-  const { raindropToken } = useAppStore();
   const [timeModalOpen, setTimeModalOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -55,8 +53,6 @@ export function ProgressIndicator({
   };
 
   const handleSaveProgress = async (timestamp: number) => {
-    if (!raindropToken) return;
-
     setIsUpdating(true);
     try {
       const platform = detectVideoPlatform(item.link);
@@ -71,8 +67,7 @@ export function ProgressIndicator({
         video: newVideoProgress,
       });
 
-      const api = new RaindropAPI(raindropToken);
-      await api.updateBookmarkNote(item._id, updatedNote);
+      await updateBookmarkProgress(item._id, updatedNote);
 
       // Update local state
       const updatedItem = { ...item, note: updatedNote };
