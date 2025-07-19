@@ -159,7 +159,9 @@ export function FeedCard({
         {/* Action buttons */}
         <div className="flex items-center gap-1 flex-shrink-0">
           {/* Progress indicator for videos and audio */}
-          {(item.type === "video" || item.type === "audio") && (
+          {(item.type === "video" ||
+            item.type === "audio" ||
+            item.domain.includes("x.com")) && (
             <ProgressIndicator
               item={item}
               onProgressUpdate={onProgressUpdate}
