@@ -32,7 +32,8 @@ export function ProgressIndicator({ item }: ProgressIndicatorProps) {
   const router = useRouter()
 
   // Show for both video and audio type bookmarks
-  if (item.type !== "video" && item.type !== "audio") return null
+  if (item.type !== "video" && item.type !== "audio" && item.domain !== "x.com")
+    return null
 
   const progressData = parseProgressFromNote(item.note)
   const videoProgress = progressData?.video
